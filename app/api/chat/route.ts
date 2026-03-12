@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         prompt: {
           id: "pmpt_69b2c8f8fc64819798c197ae0dfd430606690605b520b122",
-          version: "1",
+          version: "2",
         },
         input: message,
       }),
