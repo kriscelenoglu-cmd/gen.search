@@ -93,7 +93,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
         <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
         
         {message.products && message.products.length > 0 && (
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-3 gap-3">
             {message.products.map((product, index) => (
               <ProductCard key={`${product.model_code}-${index}`} product={product} />
             ))}
