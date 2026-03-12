@@ -13,7 +13,7 @@ interface OpenAIResponse {
   }>;
 }
 
-// OpenAI'dan parse edilen JSON formatı
+// OpenAI'dan parse edilen JSON formatı (text alanı içindeki JSON)
 interface ParsedAIResponse {
   message?: string;
   type?: string;
@@ -27,8 +27,15 @@ interface ParsedAIResponse {
   }>;
 }
 
-// Ürün tipi - NonNullable ile products dizisinin elemanını al
-type ProductItem = NonNullable<ParsedAIResponse["products"]>[number];
+// Ürün tipi - ayrı interface olarak tanımla
+interface ProductItem {
+  product_name?: string;
+  price?: number;
+  currency?: string;
+  image_url?: string;
+  discount?: number;
+  model_code?: string;
+}
 
 // Ürünleri güvenli formata dönüştür - sadece izin verilen alanları al
 function sanitizeProduct(product: ProductItem): SafeProduct | null {
@@ -53,7 +60,8 @@ function sanitizeImageUrl(url?: string): string {
   
   try {
     const parsed = new URL(url);
-    if (parsed.protocol !== "https:") {
+    // HTTP ve HTTPS'e izin ver (dummyimage.com için)
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
       return "";
     }
     return url;
@@ -121,14 +129,20 @@ export async function POST(request: NextRequest) {
 
     const data: OpenAIResponse = await openaiResponse.json();
     
+    console.log("[v0] OpenAI raw response:", JSON.stringify(data, null, 2));
+    
     // OpenAI response yapısı: output array'inde assistant mesajı var
-    // output[0] veya output içindeki role: "assistant" olan mesajı bul
     const assistantOutput = data.output?.find(
       (item) => item.role === "assistant" || item.type === "message"
     );
+    
+    console.log("[v0] Assistant output:", JSON.stringify(assistantOutput, null, 2));
+    
     const outputText = assistantOutput?.content?.find(
       (c) => c.type === "output_text"
     )?.text;
+
+    console.log("[v0] Output text:", outputText);
 
     if (!outputText) {
       return NextResponse.json<SafeChatResponse>({
@@ -141,8 +155,9 @@ export async function POST(request: NextRequest) {
     let parsed: ParsedAIResponse;
     try {
       parsed = JSON.parse(outputText);
+      console.log("[v0] Parsed response:", JSON.stringify(parsed, null, 2));
     } catch {
-      console.error("[v0] Failed to parse AI response JSON");
+      console.error("[v0] Failed to parse AI response JSON:", outputText);
       return NextResponse.json<SafeChatResponse>({
         message: "Yanıt işlenemedi. Lütfen tekrar deneyin.",
         type: "error",
