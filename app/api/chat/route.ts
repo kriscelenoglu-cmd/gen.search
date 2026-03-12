@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { SafeChatResponse, SafeProduct } from "@/lib/types";
 
+
 // Backend'de OpenAI'dan gelen ham yanıt tipi
 interface OpenAIResponse {
   output?: Array<{
