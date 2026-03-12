@@ -4,7 +4,10 @@ import type { SafeChatResponse, SafeProduct } from "@/lib/types";
 // Backend'de OpenAI'dan gelen ham yanıt tipi
 interface OpenAIResponse {
   output?: Array<{
+    type?: string;
+    role?: string;
     content?: Array<{
+      type?: string;
       text?: string;
     }>;
   }>;
@@ -117,7 +120,15 @@ export async function POST(request: NextRequest) {
     }
 
     const data: OpenAIResponse = await openaiResponse.json();
-    const outputText = data.output?.[0]?.content?.[0]?.text;
+    
+    // OpenAI response yapısı: output array'inde assistant mesajı var
+    // output[0] veya output içindeki role: "assistant" olan mesajı bul
+    const assistantOutput = data.output?.find(
+      (item) => item.role === "assistant" || item.type === "message"
+    );
+    const outputText = assistantOutput?.content?.find(
+      (c) => c.type === "output_text"
+    )?.text;
 
     if (!outputText) {
       return NextResponse.json<SafeChatResponse>({
