@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { SafeChatResponse, SafeProduct } from "@/lib/types";
 
-
 // Backend'de OpenAI'dan gelen ham yanıt tipi
 interface OpenAIResponse {
   output?: Array<{
@@ -25,7 +24,7 @@ interface ParsedAIResponse {
   }>;
 }
 
-// Ürün tipi
+// Ürün tipi - NonNullable ile products dizisinin elemanını al
 type ProductItem = NonNullable<ParsedAIResponse["products"]>[number];
 
 // Ürünleri güvenli formata dönüştür - sadece izin verilen alanları al
@@ -36,7 +35,7 @@ function sanitizeProduct(product: ProductItem): SafeProduct | null {
   }
 
   return {
-    product_name: String(product.product_name).slice(0, 200), // XSS önlemi için sınırla
+    product_name: String(product.product_name).slice(0, 200),
     price: Number(product.price),
     currency: String(product.currency || "TRY").slice(0, 10),
     image_url: sanitizeImageUrl(product.image_url),
@@ -49,17 +48,10 @@ function sanitizeProduct(product: ProductItem): SafeProduct | null {
 function sanitizeImageUrl(url?: string): string {
   if (!url) return "";
   
-  // Sadece HTTPS URL'lere izin ver
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== "https:") {
       return "";
-    }
-    // İzin verilen domainleri kontrol et
-    const allowedDomains = ["dummyimage.com", "placeholder.com", "via.placeholder.com"];
-    if (!allowedDomains.some(domain => parsed.hostname.includes(domain))) {
-      // Bilinmeyen domain - yine de HTTPS ise izin ver ama logla
-      console.log("[v0] Unknown image domain:", parsed.hostname);
     }
     return url;
   } catch {
@@ -82,10 +74,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mesaj uzunluğunu sınırla - DoS önlemi
     const sanitizedMessage = message.slice(0, 1000);
 
-    // API key kontrol
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       console.error("[v0] OPENAI_API_KEY is not configured");
@@ -99,7 +89,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // OpenAI API'ye istek at
     const openaiResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
@@ -128,8 +117,6 @@ export async function POST(request: NextRequest) {
     }
 
     const data: OpenAIResponse = await openaiResponse.json();
-
-    // OpenAI yanıtından text'i çıkar
     const outputText = data.output?.[0]?.content?.[0]?.text;
 
     if (!outputText) {
@@ -140,7 +127,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // JSON'ı parse et
     let parsed: ParsedAIResponse;
     try {
       parsed = JSON.parse(outputText);
@@ -153,7 +139,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Güvenli yanıt oluştur - sadece izin verilen alanları frontend'e gönder
     const safeProducts: SafeProduct[] = [];
     if (Array.isArray(parsed.products)) {
       for (const product of parsed.products) {
@@ -165,7 +150,7 @@ export async function POST(request: NextRequest) {
     }
 
     const safeResponse: SafeChatResponse = {
-      message: String(parsed.message || "").slice(0, 2000), // Mesajı sınırla
+      message: String(parsed.message || "").slice(0, 2000),
       type: parsed.type === "product_list" ? "product_list" : "info",
       products: safeProducts,
     };
