@@ -17,14 +17,7 @@ interface OpenAIResponse {
 interface ParsedAIResponse {
   message?: string;
   type?: string;
-  products?: Array<{
-    product_name?: string;
-    price?: number;
-    currency?: string;
-    image_url?: string;
-    discount?: number;
-    model_code?: string;
-  }>;
+  products?: Array<ProductItem>;
 }
 
 // Ürün tipi - ayrı interface olarak tanımla
@@ -60,7 +53,7 @@ function sanitizeImageUrl(url?: string): string {
   
   try {
     const parsed = new URL(url);
-    // HTTP ve HTTPS'e izin ver (dummyimage.com için)
+    // HTTP ve HTTPS'e izin ver
     if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
       return "";
     }
