@@ -24,8 +24,11 @@ interface ParsedAIResponse {
   }>;
 }
 
+// Ürün tipi
+type ProductItem = NonNullable<ParsedAIResponse["products"]>[number];
+
 // Ürünleri güvenli formata dönüştür - sadece izin verilen alanları al
-function sanitizeProduct(product: ParsedAIResponse["products"]![number]): SafeProduct | null {
+function sanitizeProduct(product: ProductItem): SafeProduct | null {
   // Gerekli alanlar yoksa null döndür
   if (!product.product_name || typeof product.price !== "number") {
     return null;
